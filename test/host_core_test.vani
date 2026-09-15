@@ -1,0 +1,45 @@
+// Host-runnable validation for the aes package's core-only (no
+// self-tests) subset. Run with:
+//   vanic run test/host_core_test.vani
+//   vanic run test/host_core_test.vani --backend=c
+//
+// Drives the SAME FIPS-197 encrypt/decrypt round trip src/lib.vani's
+// own aes128_self_test covers, entirely through core.vani alone --
+// proves core.vani by itself is sufficient to compute a real, correct
+// result, not just that it parses.
+
+use "../src/core.vani";
+
+fn main() -> i64 {
+  let key: [u8; 16] = [
+    0x00 as u8, 0x01 as u8, 0x02 as u8, 0x03 as u8, 0x04 as u8, 0x05 as u8, 0x06 as u8, 0x07 as u8,
+    0x08 as u8, 0x09 as u8, 0x0a as u8, 0x0b as u8, 0x0c as u8, 0x0d as u8, 0x0e as u8, 0x0f as u8
+  ];
+  let pt: [u8; 16] = [
+    0x00 as u8, 0x11 as u8, 0x22 as u8, 0x33 as u8, 0x44 as u8, 0x55 as u8, 0x66 as u8, 0x77 as u8,
+    0x88 as u8, 0x99 as u8, 0xaa as u8, 0xbb as u8, 0xcc as u8, 0xdd as u8, 0xee as u8, 0xff as u8
+  ];
+  let expected_ct: [u8; 16] = [
+    0x69 as u8, 0xc4 as u8, 0xe0 as u8, 0xd8 as u8, 0x6a as u8, 0x7b as u8, 0x04 as u8, 0x30 as u8,
+    0xd8 as u8, 0xcd as u8, 0xb7 as u8, 0x80 as u8, 0x70 as u8, 0xb4 as u8, 0xc5 as u8, 0x5a as u8
+  ];
+
+  let ct: [u8; 16] = zero16_bytes();
+  let _ = aes128_encrypt_block(ref key, ref pt, mut ref ct);
+  let i: i64 = 0;
+  while i < 16 {
+    assert ct[i] == expected_ct[i];
+    i = i + 1;
+  }
+
+  let pt_back: [u8; 16] = zero16_bytes();
+  let _ = aes128_decrypt_block(ref key, ref ct, mut ref pt_back);
+  i = 0;
+  while i < 16 {
+    assert pt_back[i] == pt[i];
+    i = i + 1;
+  }
+
+  print "aes core: AES-128 encrypt/decrypt round trip (no self-test) PASS";
+  return 0;
+}

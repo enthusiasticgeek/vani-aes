@@ -1,0 +1,15 @@
+// Host-runnable validation for the aes package. Run with:
+//   vanic run test/host_test.vani
+//   vanic run test/host_test.vani --backend=c
+//
+// A real `fn main()` here runs the strict whole-program checker over
+// the whole library, not just a syntax check.
+
+use "../src/lib.vani";
+
+fn main() -> i64 {
+  assert aes128_self_test() == 1;
+  assert aes_key_wrap_self_test() == 1;
+  print "aes: all self-tests PASS";
+  return 0;
+}

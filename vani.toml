@@ -1,0 +1,13 @@
+[package]
+name        = "aes"
+version     = "0.1.0"
+entry       = "src/lib.vani"
+authors     = "enthusiasticgeek"
+license     = "Apache-2.0"
+description = "AES-128 (FIPS-197), pure vani, hardware-agnostic and heap-free -- fixed-size array parameters, no allocator, no extern \"C\" dependency. Block cipher (encrypt AND decrypt -- decrypt added new, since every prior consumer only ever needed CTR-mode/CBC-MAC encryption) plus RFC 3394 AES Key Wrap/Unwrap, built on the same block cipher. Extracted from DhruvaOS's own encrypt-only implementation so any consumer can share one implementation."
+registry    = "kosh"
+
+[deps]
+# No external deps -- built entirely on vani builtins (wrapping_add/
+# wrapping_sub, fixed [T; N] arrays, u8/u32 arithmetic), same as
+# vani-crypto-hash.
