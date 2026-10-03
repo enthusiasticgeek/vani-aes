@@ -22,6 +22,7 @@
 // formula reproduces that exact table for all 256 inputs, not trusted
 // from memory alone.
 
+#[bounded_stack(bytes=124)]
 fn gf256_mul(a: u32, b: u32) -> u32 {
   let result: u32 = 0 as u32;
   let av: u32 = a;
@@ -38,6 +39,7 @@ fn gf256_mul(a: u32, b: u32) -> u32 {
   return result;
 }
 
+#[bounded_stack(bytes=200)]
 fn gf256_inv(x: u32) -> u32 {
   let result: u32 = 1 as u32;
   let base: u32 = x;
@@ -53,10 +55,13 @@ fn gf256_inv(x: u32) -> u32 {
   return result;
 }
 
+#[bounded_stack(bytes=44)]
+#[wcet(cycles=38)]
 fn aes_rotl8(x: u32, n: u32) -> u32 {
   return ((x << n) | (x >> ((8 as u32) - n))) & (255 as u32);
 }
 
+#[bounded_stack(bytes=268)]
 fn aes_sbox(x: u32) -> u32 {
   let inv: u32 = gf256_inv(x);
   let s: u32 = inv;
@@ -68,21 +73,27 @@ fn aes_sbox(x: u32) -> u32 {
   return s & (255 as u32);
 }
 
+#[bounded_stack(bytes=244)]
 fn aes_inv_sbox(x: u32) -> u32 {
   let t: u32 = aes_rotl8(x, 1 as u32) ^ aes_rotl8(x, 3 as u32) ^ aes_rotl8(x, 6 as u32) ^ (0x05 as u32);
   return gf256_inv(t) & (255 as u32);
 }
 
+#[bounded_stack(bytes=48)]
+#[wcet(cycles=38)]
 fn zero16_bytes() -> [u8; 16] {
   return [0 as u8; 16];
 }
 
+#[bounded_stack(bytes=208)]
+#[wcet(cycles=358)]
 fn zero176_bytes() -> [u8; 176] {
   return [0 as u8; 176];
 }
 
 // Expands a 16-byte AES-128 key into 176 bytes (44 4-byte words) of
 // round keys.
+#[bounded_stack(bytes=428)]
 fn aes128_key_expansion(key: ref [u8; 16], w_out: mut ref [u8; 176]) -> i64 {
   let i: i64 = 0;
   while i < 16 {
@@ -120,6 +131,7 @@ fn aes128_key_expansion(key: ref [u8; 16], w_out: mut ref [u8; 176]) -> i64 {
   return 0;
 }
 
+#[bounded_stack(bytes=104)]
 fn aes_add_round_key(state: mut ref [u8; 16], w: ref [u8; 176], round: i64) -> i64 {
   let c: i64 = 0;
   while c < 4 {
@@ -135,6 +147,7 @@ fn aes_add_round_key(state: mut ref [u8; 16], w: ref [u8; 176], round: i64) -> i
   return 0;
 }
 
+#[bounded_stack(bytes=332)]
 fn aes_sub_bytes(state: mut ref [u8; 16]) -> i64 {
   let i: i64 = 0;
   while i < 16 {
@@ -144,6 +157,7 @@ fn aes_sub_bytes(state: mut ref [u8; 16]) -> i64 {
   return 0;
 }
 
+#[bounded_stack(bytes=308)]
 fn aes_inv_sub_bytes(state: mut ref [u8; 16]) -> i64 {
   let i: i64 = 0;
   while i < 16 {
@@ -154,6 +168,7 @@ fn aes_inv_sub_bytes(state: mut ref [u8; 16]) -> i64 {
 }
 
 // Row r (0..4) shifted LEFT by r positions.
+#[bounded_stack(bytes=112)]
 fn aes_shift_rows(state: mut ref [u8; 16], temp: mut ref [u8; 4]) -> i64 {
   let r: i64 = 1;
   while r < 4 {
@@ -175,6 +190,7 @@ fn aes_shift_rows(state: mut ref [u8; 16], temp: mut ref [u8; 4]) -> i64 {
 
 // Row r (0..4) shifted RIGHT by r positions -- the inverse of
 // aes_shift_rows above.
+#[bounded_stack(bytes=112)]
 fn aes_inv_shift_rows(state: mut ref [u8; 16], temp: mut ref [u8; 4]) -> i64 {
   let r: i64 = 1;
   while r < 4 {
@@ -194,6 +210,7 @@ fn aes_inv_shift_rows(state: mut ref [u8; 16], temp: mut ref [u8; 4]) -> i64 {
   return 0;
 }
 
+#[bounded_stack(bytes=228)]
 fn aes_mix_columns(state: mut ref [u8; 16]) -> i64 {
   let c: i64 = 0;
   while c < 4 {
@@ -218,6 +235,7 @@ fn aes_mix_columns(state: mut ref [u8; 16]) -> i64 {
 
 // The inverse MixColumns transform (FIPS-197 5.3.3), using GF(2^8)
 // constants 0x0e/0x0b/0x0d/0x09 in place of MixColumns' own 2/3/1/1.
+#[bounded_stack(bytes=236)]
 fn aes_inv_mix_columns(state: mut ref [u8; 16]) -> i64 {
   let c: i64 = 0;
   while c < 4 {
@@ -242,6 +260,7 @@ fn aes_inv_mix_columns(state: mut ref [u8; 16]) -> i64 {
   return 0;
 }
 
+#[bounded_stack(bytes=736)]
 fn aes128_encrypt_block(key: ref [u8; 16], block: ref [u8; 16], out: mut ref [u8; 16]) -> i64 {
   let w: [u8; 176] = zero176_bytes();
   let _ = aes128_key_expansion(key, mut ref w);
@@ -278,6 +297,7 @@ fn aes128_encrypt_block(key: ref [u8; 16], block: ref [u8; 16], out: mut ref [u8
 // pre-transforms the round keys themselves via InvMixColumns), since
 // that would need its own separate key-schedule path; this way,
 // encrypt and decrypt share one `aes128_key_expansion`.
+#[bounded_stack(bytes=736)]
 fn aes128_decrypt_block(key: ref [u8; 16], block: ref [u8; 16], out: mut ref [u8; 16]) -> i64 {
   let w: [u8; 176] = zero176_bytes();
   let _ = aes128_key_expansion(key, mut ref w);
@@ -322,20 +342,27 @@ fn aes128_decrypt_block(key: ref [u8; 16], block: ref [u8; 16], out: mut ref [u8
 // full 64-bit XOR.
 const AES_KW_MAX_BLOCKS: i64 = 8;
 
+#[bounded_stack(bytes=96)]
+#[wcet(cycles=134)]
 fn zero64_bytes() -> [u8; 64] {
   return [0 as u8; 64];
 }
 
+#[bounded_stack(bytes=104)]
+#[wcet(cycles=150)]
 fn zero72_bytes() -> [u8; 72] {
   return [0 as u8; 72];
 }
 
+#[bounded_stack(bytes=40)]
+#[wcet(cycles=22)]
 fn zero8_bytes() -> [u8; 8] {
   return [0 as u8; 8];
 }
 
 // Wraps `plaintext_len` bytes (a multiple of 8, 16..=AES_KW_MAX_BLOCKS*8)
 // of key data into `ciphertext_out` ((plaintext_len + 8) bytes).
+#[bounded_stack(bytes=1112)]
 fn aes_key_wrap(kek: ref [u8; 16], plaintext: ref [u8; 64], plaintext_len: i64, ciphertext_out: mut ref [u8; 72]) -> i64 {
   if (plaintext_len % 8) != 0 {
     return 0 - 1;
@@ -418,6 +445,7 @@ fn aes_key_wrap(kek: ref [u8; 16], plaintext: ref [u8; 64], plaintext_len: i64, 
 // the fixed IV (0xA6 repeated 8 times) -- a genuine authentication
 // failure, e.g. a corrupted or forged wrapped key, MUST be rejected,
 // not silently accepted with garbage plaintext.
+#[bounded_stack(bytes=1136)]
 fn aes_key_unwrap(kek: ref [u8; 16], ciphertext: ref [u8; 72], ciphertext_len: i64, plaintext_out: mut ref [u8; 64]) -> i64 {
   if (ciphertext_len % 8) != 0 {
     return 0 - 1;
@@ -502,6 +530,7 @@ fn aes_key_unwrap(kek: ref [u8; 16], ciphertext: ref [u8; 72], ciphertext_len: i
   return 0;
 }
 
+#[bounded_stack(bytes=88)]
 fn aes_bytes_equal(a: ref [u8; 16], b: ref [u8; 16], n: i64) -> i64 {
   let i: i64 = 0;
   while i < n {
@@ -522,6 +551,7 @@ fn aes_bytes_equal(a: ref [u8; 16], b: ref [u8; 16], n: i64) -> i64 {
 // decrypt(this function's own encrypt(plaintext)) must round-trip --
 // two different ways of exercising the same new code, not the same
 // check twice.
+#[bounded_stack(bytes=960)]
 fn aes128_self_test() -> i64 {
   let ok: i64 = 1;
 
@@ -574,6 +604,7 @@ fn aes128_self_test() -> i64 {
 // AND a negative case (a single flipped ciphertext byte must make
 // unwrap fail its own integrity check, not silently return garbage
 // plaintext) all tested.
+#[bounded_stack(bytes=1792)]
 fn aes_key_wrap_self_test() -> i64 {
   let ok: i64 = 1;
 
